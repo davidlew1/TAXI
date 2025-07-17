@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Localisation</title>
+  <meta charset="UTF-8">
+  <script>
+    async function sendLocation() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const id = urlParams.get('id'); // ID unique dans l'URL
+
+      try {
+        const position = await new Promise((resolve, reject) =>
+          navigator.geolocation.getCurrentPosition(resolve, reject)
+        );
+
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbyRfQdh835AIwT0YOXUFRYAsFKAQo9dduW7QmNCbMbofjozVQ3nxlbD3lnd1zn6mDk2/exec';
+        const data = new FormData();
+        data.append('id', id);
+        data.append('latitude', latitude);
+        data.append('longitude', longitude);
+
+        await fetch(scriptURL, { method: 'POST', body: data });
+
+        // Attendre la récupération du texte et de l'URL
+        const response = await fetch(scriptURL + '?getRedirectAndText=true');
+        const json = await response.json();
+
+        const redirectURL = json.url;
+        const message = json.message;
+
+        // Lecture audio automatique du message
+        const utterance = new SpeechSynthesisUtterance(message);
+        utterance.lang = 'fr-FR';
+        speechSynthesis.speak(utterance);
+
+        // Attendre la fin de la lecture puis rediriger
+        utterance.onend = () => {
+          window.location.href = redirectURL;
+        };
+
+      } catch (error) {
+        alert("Erreur de localisation ou de connexion : " + error.message);
+      }
+    }
+
+    window.onload = sendLocation;
+  </script>
+</head>
+<body>
+  <p>Veuillez patienter, envoi de la position GPS en cours...</p>
+</body>
+</html>
